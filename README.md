@@ -4,13 +4,13 @@ Run [Grablo IoT Core](https://grablo.co) as a Docker container, next to a
 Docker-based Home Assistant setup (mini-PC / NAS / Proxmox, etc.).
 
 [Grablo](https://grablo.co) is a web-based, no-code platform for AI-powered IoT —
-build logic by placing blocks instead of writing code, add AI vision and voice
-without machine-learning expertise, and control everything from a web dashboard.
-In a container you get Grablo's network, IoT, AI and remote-control features (MQTT,
-Modbus, OPC-UA, HTTP, AI vision/voice, audio, USB camera/serial) running right
-beside Home Assistant.
+build logic by placing blocks instead of writing code, add AI vision and audio
+without machine-learning expertise, and control everything from a web and mobile
+dashboard, anywhere, with no extra setup. In a container you get Grablo's network,
+IoT, AI and remote-control features (MQTT, Modbus, OPC-UA, HTTP, AI vision and audio,
+USB camera, USB serial) running right beside Home Assistant.
 
-> **Access is through the existing [Grablo web app](https://grablo.co).** The
+> **Access is through the existing [Grablo web app](https://app.grablo.co).** The
 > container does not serve its own UI — it connects to the Grablo cloud, and you
 > pair and control it from the web app.
 
@@ -25,7 +25,7 @@ docker compose up -d
 ```
 
 Once the container connects to the cloud, log in to the
-[Grablo web app](https://grablo.co), pair the device that appears, and control it.
+[Grablo web app](https://app.grablo.co), pair the device that appears, and control it.
 
 To pin a specific version:
 
