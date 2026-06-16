@@ -3,12 +3,11 @@
 Run [Grablo IoT Core](https://grablo.co) as a Docker container, next to a
 Docker-based Home Assistant setup (mini-PC / NAS / Proxmox, etc.).
 
-[Grablo](https://grablo.co) is a web-based, no-code platform for AI-powered IoT —
-build logic by placing blocks instead of writing code, add AI vision and audio
-without machine-learning expertise, and control everything from a web and mobile
-dashboard, anywhere, with no extra setup. In a container you get Grablo's network,
-IoT, AI and remote-control features (MQTT, Modbus, OPC-UA, HTTP, AI vision and audio,
-USB camera, USB serial) running right beside Home Assistant.
+[Grablo](https://grablo.co) is a web-based, no-code platform for AI-powered IoT and
+automation — build logic visually with blocks, add AI vision and audio, and control
+everything from a web and mobile dashboard. In a container you get Grablo's network,
+IoT, AI and automation features — MQTT, Modbus (RTU/TCP), OPC-UA, HTTP, Zigbee, AI
+vision & audio, and Home Assistant integration — running right next to Home Assistant.
 
 > **Access is through the [Grablo web app](https://app.grablo.co).** The container has
 > no UI of its own — it connects to the Grablo cloud, and you pair and control it from
@@ -95,6 +94,9 @@ Frigate, Zigbee2MQTT, ESPHome).
 >   runs in a VM and can't pass USB devices through.
 > - **CSI cameras** (Pi Camera Module) need libcamera + `privileged` and are out of
 >   scope — use a USB camera, or run Grablo natively.
+> - **GPIO / I2C / SPI sensors** use a single-board computer's pins (Raspberry Pi,
+>   Jetson, etc.) and aren't available to an x86 container — run Grablo natively on an
+>   SBC for those.
 
 ---
 
