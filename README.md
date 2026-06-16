@@ -1,9 +1,14 @@
 # Grablo IoT Core — Docker
 
-Run [Grablo IoT Core](https://grablo.co) as a Docker container. Designed to sit
-next to a Docker-based Home Assistant setup (mini-PC / NAS / Proxmox, etc.) so you
-can use Grablo's network/IoT features — MQTT, Modbus, OPC-UA, HTTP, AI, remote
-control, and more.
+Run [Grablo IoT Core](https://grablo.co) as a Docker container, next to a
+Docker-based Home Assistant setup (mini-PC / NAS / Proxmox, etc.).
+
+[Grablo](https://grablo.co) is a web-based, no-code platform for AI-powered IoT —
+build logic by placing blocks instead of writing code, add AI vision and voice
+without machine-learning expertise, and control everything from a web dashboard.
+In a container you get Grablo's network, IoT, AI and remote-control features (MQTT,
+Modbus, OPC-UA, HTTP, AI vision/voice, audio, USB camera/serial) running right
+beside Home Assistant.
 
 > **Access is through the existing [Grablo web app](https://grablo.co).** The
 > container does not serve its own UI — it connects to the Grablo cloud, and you
