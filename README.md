@@ -10,9 +10,13 @@ dashboard, anywhere, with no extra setup. In a container you get Grablo's networ
 IoT, AI and remote-control features (MQTT, Modbus, OPC-UA, HTTP, AI vision and audio,
 USB camera, USB serial) running right beside Home Assistant.
 
-> **Access is through the existing [Grablo web app](https://app.grablo.co).** The
-> container does not serve its own UI — it connects to the Grablo cloud, and you
-> pair and control it from the web app.
+> **Access is through the [Grablo web app](https://app.grablo.co).** The container has
+> no UI of its own — it connects to the Grablo cloud, and you pair and control it from
+> the web app.
+
+> **Running Home Assistant OS / Supervised?** Install the
+> [Home Assistant add-on](https://github.com/grablo/grablo-hass-addons) instead — it
+> sets up in one click and wires up hardware for you.
 
 ---
 
@@ -24,38 +28,29 @@ cd grablo-docker
 docker compose up -d
 ```
 
-Once the container connects to the cloud, log in to the
-[Grablo web app](https://app.grablo.co), pair the device that appears, and control it.
+Then open the [Grablo web app](https://app.grablo.co), pair the device that appears,
+and control it.
 
-To pin a specific version:
+Pin a specific version:
 
 ```bash
-cp .env.example .env      # edit GRABLO_VERSION
+cp .env.example .env      # set GRABLO_VERSION
 docker compose up -d
+```
+
+Update by pulling a newer image (the container does not self-update):
+
+```bash
+docker compose pull && docker compose up -d
 ```
 
 ---
 
-## How it works
+## Persistent data
 
-- Images are published to the **GitHub Container Registry**: `ghcr.io/grablo/iot-core`.
-- Each image is built by downloading the official release `.deb` from the public
-  CDN (`downloads.grablo.co`) and packaging it (see `Dockerfile`). You can build it
-  yourself too:
-
-  ```bash
-  docker build --build-arg GRABLO_VERSION=1.20.0 -t ghcr.io/grablo/iot-core:1.20.0 .
-  ```
-
-This repository contains only the packaging recipe. The Grablo IoT Core binary
-is never committed here — it is fetched at build time from the public CDN.
-
----
-
-## Persistent data (important)
-
-For the container to stay the **same device** across recreation, it needs volumes.
-`docker-compose.yml` persists the following as named volumes:
+The container keeps its identity and data in named volumes (already set up in
+`docker-compose.yml`) so it stays the **same paired device** across updates and
+recreation:
 
 | Volume | Path | Purpose |
 |---|---|---|
@@ -63,99 +58,66 @@ For the container to stay the **same device** across recreation, it needs volume
 | `grablo-config` | `/etc/grablo` | Saved settings (incl. encrypted secure values) |
 | `grablo-data` | `/var/grablo` | Downloaded user files / datalog |
 | `grablo-log` | `/var/log/grablo` | Logs |
-| `grablo-models` | `/usr/share/grablo` | AI / speech / LPR models + face-recognition DB |
-| `grablo-secure` | `/var/lib/.syscache` | Security key/salt for the encrypted secure values |
-| `grablo-zigbee` | `/usr/lib/grablo/zigbee` | Zigbee runtime (incl. paired devices) |
+| `grablo-models` | `/usr/share/grablo` | AI / speech models + face-recognition data |
+| `grablo-secure` | `/var/lib/.syscache` | Security keys for the encrypted settings |
+| `grablo-zigbee` | `/usr/lib/grablo/zigbee` | Zigbee runtime (paired devices) |
 
-> ⚠️ If `grablo-id` is lost, the device must be **re-paired** and its saved settings
-> are lost. Do not delete it.
-
----
-
-## Networking
-
-The container uses `network_mode: host` for real-time connectivity (recommended on
-a real Linux host). It needs **outbound internet** access to the Grablo cloud.
+> ⚠️ Don't delete `grablo-id` — without it the device must be re-paired and its saved
+> settings are lost.
 
 ---
 
 ## Hardware & permissions
 
-A container only gets the hardware you explicitly grant it. **Network, cloud, remote
-control and AI-cloud features need nothing extra** — they work out of the box. For
-*physical* hardware, add the matching lines to `docker-compose.yml` (one per device):
+The container uses `network_mode: host` and needs outbound internet to reach the
+Grablo cloud. **Network, cloud, AI-cloud and remote-control features then work out of
+the box** — nothing extra to configure.
 
-| Feature | Add to `docker-compose.yml` | `privileged`? |
-|---|---|---|
-| Network / cloud / remote / AI-cloud | nothing — works by default | No |
-| Audio (TTS / STT / media) | `devices: /dev/snd` + env `GRABLO_START_PULSE=1`, or mount the host PulseAudio socket | No |
-| USB camera (AI video) | `devices: /dev/video0`, `/dev/media0` + `volumes: /run/udev:/run/udev:ro` | No |
-| USB serial (Modbus RTU) | `devices: /dev/ttyUSB0` | No |
-| Zigbee dongle | `devices: /dev/ttyACM0` | No |
+For *physical* hardware, grant each device in `docker-compose.yml` (uncomment the
+relevant lines) — all **without `privileged`**:
 
-Everything above works **without `privileged`**. See the commented blocks in
-`docker-compose.yml`, and the Audio / Camera sections below for details.
+| Feature | Add to `docker-compose.yml` |
+|---|---|
+| Audio (TTS / STT / media) | `devices: /dev/snd` + env `GRABLO_START_PULSE=1`, or mount the host PulseAudio socket |
+| USB camera (AI video) | `devices: /dev/video0`, `/dev/media0` + `volumes: /run/udev:/run/udev:ro` |
+| USB serial (Modbus RTU) | `devices: /dev/ttyUSB0` |
+| Zigbee dongle | `devices: /dev/ttyACM0` |
 
-> **Device passthrough needs a real Linux host.** Docker Desktop (Windows/macOS) runs
-> in a VM and cannot pass host USB devices through.
->
-> **CSI cameras** (Pi Camera Module) need libcamera + `privileged` and are out of
-> scope — use a USB camera, or run Grablo natively.
->
-> Prefer not to wire devices yourself? The
-> **[Home Assistant add-on](https://github.com/grablo/grablo-hass-addons)** declares
-> these permissions in its manifest and the Supervisor attaches the devices for you.
+- **USB cameras** are enumerated and captured via V4L2 — no libcamera, no `privileged`.
+  (Verified on a Raspberry Pi 5 with a Logitech C922.)
+- **Audio** is optional — if no sound device is attached, only audio features are
+  disabled and everything else keeps working.
 
----
+This is the standard way hardware-using Docker apps expose devices (the same as
+Frigate, Zigbee2MQTT, ESPHome).
 
-## Audio (optional)
-
-To use audio features (TTS / STT / media), attach a host sound device by
-uncommenting the audio section in `docker-compose.yml`:
-
-- **Desktop host (PulseAudio):** mount the host socket and set `PULSE_SERVER`.
-- **Server (direct ALSA):** pass through `/dev/snd` and set `GRABLO_START_PULSE=1`.
-
-If no audio device is available, only audio features are disabled — everything else
-works normally. (Verified on a real host: TTS / STT / media playback all work.)
+> - Device passthrough needs a **real Linux host** — Docker Desktop (Windows/macOS)
+>   runs in a VM and can't pass USB devices through.
+> - **CSI cameras** (Pi Camera Module) need libcamera + `privileged` and are out of
+>   scope — use a USB camera, or run Grablo natively.
 
 ---
 
-## Camera (AI video)
+## How it works
 
-Attach a USB camera by passing its device nodes in `docker-compose.yml`:
+Images are published to `ghcr.io/grablo/iot-core` (multi-arch `amd64` / `arm64`). Each
+image is built by fetching the official release `.deb` from the public CDN — the
+Grablo binary is never committed to this repo. You can build it yourself:
 
-```yaml
-    devices:
-      - /dev/video0
-      - /dev/media0
-    volumes:
-      - /run/udev:/run/udev:ro    # device enumeration
+```bash
+docker build --build-arg GRABLO_VERSION=1.20.0 -t ghcr.io/grablo/iot-core:1.20.0 .
 ```
-
-A USB camera then scans and streams **without `privileged`** — verified on a
-Raspberry Pi 5 (Logitech C922). In a container the controller enumerates and
-captures USB cameras via V4L2 directly (no libcamera), so only the device nodes
-above are needed.
-
-> **CSI cameras** (Pi Camera Module) are different: they need libcamera (the ISP
-> pipeline), which in a container requires `privileged` + more device passthrough.
-> CSI is out of scope here — use a USB camera, or run grablo natively for CSI.
->
-> Older controllers (≤ 1.19.0) enumerated USB cameras via libcamera and needed
-> `privileged`; controller 1.19.2+ removes that with the V4L2 path.
 
 ---
 
 ## Logs
 
-The controller logs to a file, mirrored to the container stdout, so:
-
 ```bash
 docker logs -f grablo
 ```
 
-(Disable the mirror with `GRABLO_LOG_STDOUT=0` if you only want the file log.)
+grablo logs to a file, mirrored to the container stdout. Set `GRABLO_LOG_STDOUT=0` to
+disable the mirror.
 
 ---
 
@@ -165,54 +127,13 @@ docker logs -f grablo
 
 ---
 
-## Updating
+## Links
 
-Containers update by **pulling a new image**, not via in-app updates:
-
-```bash
-docker compose pull && docker compose up -d
-```
-
-Using the `latest` tag pulls the newest published image at pull time. To stay on a
-fixed version, pin `GRABLO_VERSION` in `.env`.
-
----
-
-## Scope / roadmap
-
-- ✅ Network / IoT / cloud, web access, Device ID & settings persistence
-- ✅ Restart safety (single-instance via flock) + container-aware updates (in-app OTA
-  disabled in a container → update by image pull)
-- ✅ Audio I/O (TTS / STT / media) — verified on a real host (Raspberry Pi 5)
-- ✅ USB camera (AI video) — scans & streams **without `privileged`** (V4L2, controller
-  1.19.2+) — verified on Raspberry Pi 5
-- ⏳ USB serial / Zigbee / Modbus RTU dongles (pending validation)
-- ✅ Home Assistant add-on — published separately:
-  [grablo-hass-addons](https://github.com/grablo/grablo-hass-addons) (one-click
-  install, auto-auth via the Supervisor — no token needed)
-- ✖ GPIO / I2C / SPI direct hardware — not relevant on x86 (ARM SBC: future);
-  local display output — not relevant for headless
-
----
-
-## FAQ
-
-**Do I need a separate device to run this?**
-No. Run it as a container next to your Home Assistant (same mini-PC / NAS / Proxmox).
-It connects to the Grablo cloud and you control it from the web app.
-
-**It's a container, not a VM — do I have to map `/dev/...` devices myself?**
-For network / cloud / AI-cloud features: **no**, they work out of the box. For
-*physical* hardware (camera, USB serial, audio) you add one `devices:` line per
-device — see [Hardware & permissions](#hardware--permissions). A container shares the
-host kernel and is isolated by design, so host hardware is exposed explicitly rather
-than automatically. This is the standard way every hardware-using HA/Docker app works
-(e.g. Frigate, Zigbee2MQTT, ESPHome).
-
-**What if I want zero hardware configuration?**
-Either install Grablo natively (the regular installer runs directly on the host with
-full hardware access), or use the [Home Assistant add-on](https://github.com/grablo/grablo-hass-addons),
-which declares devices in `config.yaml` so the Supervisor wires them up for you.
+- Website: **https://grablo.co**
+- Web app: **https://app.grablo.co**
+- Template gallery: **https://app.grablo.co/gallery**
+- Documentation: **https://doc.grablo.co**
+- Home Assistant add-on: **https://github.com/grablo/grablo-hass-addons**
 
 ---
 
