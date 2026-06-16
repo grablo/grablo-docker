@@ -52,6 +52,7 @@ RUN set -eux; \
     dpkg-deb -x /tmp/grablo.deb /tmp/grablo-root; \
     cp -a /tmp/grablo-root/usr/bin/grablo /usr/bin/; \
     cp -a /tmp/grablo-root/usr/lib/grablo /usr/lib/; \
+    cp -a /tmp/grablo-root/usr/share/grablo /usr/share/; \
     rm -rf /tmp/grablo.deb /tmp/grablo-root; \
     ldconfig /usr/lib/grablo
 
