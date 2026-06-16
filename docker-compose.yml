@@ -1,0 +1,46 @@
+# ============================================================================
+# Grablo IoT Core — Docker (for HA Container / general Docker users)
+#   Run:    docker compose up -d
+#   Access: pair and control the device from the Grablo web app.
+# ============================================================================
+services:
+  grablo:
+    image: ghcr.io/grablo/iot-core:${GRABLO_VERSION:-latest}
+    container_name: grablo
+    # Host networking for real-time connectivity (recommended on a real Linux host).
+    # (Docker Desktop on Windows/macOS has limited host networking → bridge + outbound)
+    network_mode: host
+    volumes:
+      - grablo-id:/data              # device identity — keep this to stay paired
+      - grablo-config:/etc/grablo    # saved settings (incl. encrypted secure values)
+      - grablo-data:/var/grablo      # downloaded user files / datalog
+      - grablo-log:/var/log/grablo   # logs
+      - grablo-models:/usr/share/grablo        # AI / speech / LPR models + face-recognition DB
+      - grablo-secure:/var/lib/.syscache       # security key/salt for the encrypted secure values
+      - grablo-zigbee:/usr/lib/grablo/zigbee   # zigbee runtime
+      # ── Audio (desktop host: PulseAudio socket) ──
+      # - /run/user/1000/pulse/native:/run/pulse/native
+    # environment:
+    #   - PULSE_SERVER=unix:/run/pulse/native
+    # ── Hardware passthrough (real Linux host only — one line per device) ──
+    #   Network/cloud/AI-cloud features need none of this. Add only what you use.
+    # devices:
+    #   - /dev/video0      # USB camera (AI video) — also add /dev/media0 + the udev mount below
+    #   - /dev/media0      # USB camera (V4L2 enumeration)
+    #   - /dev/ttyUSB0     # USB serial (Modbus RTU)
+    #   - /dev/ttyACM0     # Zigbee dongle
+    #   - /dev/snd         # audio (also set GRABLO_START_PULSE=1)
+    # volumes:
+    #   - /run/udev:/run/udev:ro   # USB camera device enumeration (no privileged needed, controller 1.19.2+)
+    # environment:
+    #   - GRABLO_START_PULSE=1
+    restart: unless-stopped
+
+volumes:
+  grablo-id:
+  grablo-config:
+  grablo-data:
+  grablo-log:
+  grablo-models:
+  grablo-secure:
+  grablo-zigbee:
