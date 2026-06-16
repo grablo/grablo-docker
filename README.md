@@ -94,9 +94,6 @@ Frigate, Zigbee2MQTT, ESPHome).
 >   runs in a VM and can't pass USB devices through.
 > - **CSI cameras** (Pi Camera Module) need libcamera + `privileged` and are out of
 >   scope — use a USB camera, or run Grablo natively.
-> - **GPIO / I2C / SPI sensors** use a single-board computer's pins (Raspberry Pi,
->   Jetson, etc.) and aren't available to an x86 container — run Grablo natively on an
->   SBC for those.
 
 ---
 
