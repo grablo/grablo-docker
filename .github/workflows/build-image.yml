@@ -1,14 +1,14 @@
 name: build-image
 
-# 버전 태그(v1.20.0 등) push 시 또는 수동 실행 시:
-#   amd64 + arm64 멀티아치 이미지를 빌드해 GHCR(ghcr.io/grablo/iot-core)로 push.
+# On a version tag push (v1.20.0, …) or a manual run:
+#   build the amd64 + arm64 multi-arch image and push to GHCR (ghcr.io/grablo/iot-core).
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
     inputs:
       version:
-        description: 'Grablo version (예: 1.20.0)'
+        description: 'Grablo version (e.g. 1.20.0)'
         required: true
 
 permissions:
