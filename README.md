@@ -123,7 +123,7 @@ disable the mirror.
 - Website: **https://grablo.co**
 - Web app: **https://app.grablo.co**
 - Project gallery: **https://app.grablo.co/gallery**
-- Documentation: **https://doc.grablo.co**
+- Documentation: **https://grablo.co/studio/manual**
 - Home Assistant add-on: **https://github.com/grablo/grablo-hass-addons**
 
 ---
