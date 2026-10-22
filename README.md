@@ -110,6 +110,8 @@ docker compose -f docker-compose.spot.yml up -d
 
 Open `http://<this-host>:8127/` for the local screen (on first start the setup code is
 printed in `docker logs grablo`), or add the device in the Grablo Spot web app.
+On Home Assistant OS / Supervised, use the
+[Grablo Spot add-on](https://github.com/grablo/grablo-spot-hass-addons) instead.
 Both images use the same volumes, because a host runs one controller — switching
 images keeps your device identity and settings. Build it yourself with:
 
