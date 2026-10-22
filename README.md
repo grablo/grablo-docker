@@ -99,6 +99,25 @@ Grablo binary is never committed to this repo. You can build it yourself:
 docker build --build-arg GRABLO_VERSION=1.20.0 -t ghcr.io/grablo/iot-core:1.20.0 .
 ```
 
+### Grablo Spot
+
+Grablo Spot (camera AI / CCTV) has its own image, `ghcr.io/grablo/spot`, with its own
+version line (2.x). Use `docker-compose.spot.yml`:
+
+```bash
+docker compose -f docker-compose.spot.yml up -d
+```
+
+Open `http://<this-host>:8127/` for the local screen (on first start the setup code is
+printed in `docker logs grablo`), or add the device in the Grablo Spot web app.
+Both images use the same volumes, because a host runs one controller — switching
+images keeps your device identity and settings. Build it yourself with:
+
+```bash
+docker build --build-arg GRABLO_PRODUCT=spot --build-arg GRABLO_TITLE="Grablo Spot" \
+  --build-arg GRABLO_VERSION=2.0.0 -t ghcr.io/grablo/spot:2.0.0 .
+```
+
 ---
 
 ## Logs

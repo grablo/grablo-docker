@@ -23,6 +23,21 @@ echo "[entrypoint] device identity ready"
 # 2) Library cache
 ldconfig /usr/lib/grablo 2>/dev/null || true
 
+# 2b) Files that belong to the image, not to the /usr/share/grablo volume (models, face DB stay in the volume):
+#     the local screen (www/spot, port 8127) and the edition marker (product.json — Grablo Spot image only).
+#     Refresh them from the image on every start so an image update reaches existing volumes.
+SHARE=/usr/share/grablo
+if [ -d /opt/grablo-image ]; then
+    mkdir -p "$SHARE"
+    rm -rf "$SHARE/www"
+    [ -d /opt/grablo-image/www ] && cp -a /opt/grablo-image/www "$SHARE/www"
+    if [ -f /opt/grablo-image/product.json ]; then
+        cp -f /opt/grablo-image/product.json "$SHARE/product.json"
+    else
+        rm -f "$SHARE/product.json"
+    fi
+fi
+
 # 3) Audio
 #    By default an external PulseAudio (host socket mount, or HA audio:true) is used.
 #    Set GRABLO_START_PULSE=1 (with /dev/snd) to start PulseAudio inside the container.

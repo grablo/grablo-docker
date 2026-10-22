@@ -1,7 +1,10 @@
 name: build-image
 
-# On a version tag push (v1.20.0, …) or a manual run:
-#   build the amd64 + arm64 multi-arch image and push to GHCR (ghcr.io/grablo/iot-core).
+# On a version tag push or a manual run: build the amd64 + arm64 multi-arch image and push to GHCR.
+#   Product (one controller source, version numbers per product — grablo-frontend docs/SPOT_RELEASE_CHANNEL.md):
+#     tag v1.29.8      → core → ghcr.io/grablo/iot-core:1.29.8 + :latest  (Reflex / Studio)
+#     tag spot-v2.0.0  → spot → ghcr.io/grablo/spot:2.0.0 + :latest      (Grablo Spot)
+#   A manual run picks the product. The two repositories never share :latest.
 #
 # Each arch is built on its OWN native runner (no QEMU emulation):
 #   amd64   → ubuntu-latest      (x86_64 native)
@@ -12,19 +15,22 @@ name: build-image
 # single-job multi-arch build. Ref: Docker "distribute build across runners".
 on:
   push:
-    tags: ['v*']
+    tags: ['v*', 'spot-v*']
   workflow_dispatch:
     inputs:
       version:
-        description: 'Grablo version (e.g. 1.20.0)'
+        description: 'Grablo version (e.g. 1.29.8 for core, 2.0.0 for spot)'
         required: true
+      product:
+        description: 'Product'
+        required: true
+        default: core
+        type: choice
+        options: [core, spot]
 
 permissions:
   contents: read
   packages: write
-
-env:
-  REGISTRY_IMAGE: ghcr.io/grablo/iot-core
 
 jobs:
   build:
@@ -45,14 +51,19 @@ jobs:
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> "$GITHUB_ENV"
 
-      - name: Resolve version
+      - name: Resolve version + product
         id: ver
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "v=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+            v="${{ github.event.inputs.version }}"; p="${{ github.event.inputs.product }}"
+          elif [[ "$GITHUB_REF_NAME" == spot-v* ]]; then
+            v="${GITHUB_REF_NAME#spot-v}"; p=spot
           else
-            echo "v=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+            v="${GITHUB_REF_NAME#v}"; p=core
           fi
+          if [ "$p" = spot ]; then img=ghcr.io/grablo/spot; title='Grablo Spot'; else img=ghcr.io/grablo/iot-core; title='Grablo IoT Core'; fi
+          echo "v=$v" >> "$GITHUB_OUTPUT"; echo "product=$p" >> "$GITHUB_OUTPUT"
+          echo "image=$img" >> "$GITHUB_OUTPUT"; echo "title=$title" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v4
 
@@ -71,7 +82,9 @@ jobs:
           platforms: ${{ matrix.platform }}
           build-args: |
             GRABLO_VERSION=${{ steps.ver.outputs.v }}
-          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+            GRABLO_PRODUCT=${{ steps.ver.outputs.product }}
+            GRABLO_TITLE=${{ steps.ver.outputs.title }}
+          outputs: type=image,name=${{ steps.ver.outputs.image }},push-by-digest=true,name-canonical=true,push=true
           provenance: false
 
       - name: Export digest
@@ -92,14 +105,19 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Resolve version
+      - name: Resolve version + product
         id: ver
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "v=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+            v="${{ github.event.inputs.version }}"; p="${{ github.event.inputs.product }}"
+          elif [[ "$GITHUB_REF_NAME" == spot-v* ]]; then
+            v="${GITHUB_REF_NAME#spot-v}"; p=spot
           else
-            echo "v=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+            v="${GITHUB_REF_NAME#v}"; p=core
           fi
+          if [ "$p" = spot ]; then img=ghcr.io/grablo/spot; title='Grablo Spot'; else img=ghcr.io/grablo/iot-core; title='Grablo IoT Core'; fi
+          echo "v=$v" >> "$GITHUB_OUTPUT"; echo "product=$p" >> "$GITHUB_OUTPUT"
+          echo "image=$img" >> "$GITHUB_OUTPUT"; echo "title=$title" >> "$GITHUB_OUTPUT"
 
       - name: Download digests
         uses: actions/download-artifact@v4
@@ -121,9 +139,9 @@ jobs:
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create \
-            -t ${{ env.REGISTRY_IMAGE }}:${{ steps.ver.outputs.v }} \
-            -t ${{ env.REGISTRY_IMAGE }}:latest \
-            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+            -t ${{ steps.ver.outputs.image }}:${{ steps.ver.outputs.v }} \
+            -t ${{ steps.ver.outputs.image }}:latest \
+            $(printf '${{ steps.ver.outputs.image }}@sha256:%s ' *)
 
       - name: Inspect
-        run: docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.ver.outputs.v }}
+        run: docker buildx imagetools inspect ${{ steps.ver.outputs.image }}:${{ steps.ver.outputs.v }}

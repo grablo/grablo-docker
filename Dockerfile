@@ -40,6 +40,13 @@ FROM debian:13-slim
 # emulation and any builder that doesn't pass TARGETARCH.
 ARG GRABLO_VERSION=1.20.0
 
+# Product (one controller source, version numbers per product — grablo-frontend docs/SPOT_RELEASE_CHANNEL.md):
+#   core → ghcr.io/grablo/iot-core  (Reflex / Studio, 1.x)  from releases/grablo_<ver>_<arch>.deb
+#   spot → ghcr.io/grablo/spot      (Grablo Spot, 2.x)      from releases/spot/grablo-spot_<ver>_<arch>.deb
+#          (the Spot deb adds /usr/share/grablo/product.json → the controller knows it is the Spot edition)
+ARG GRABLO_PRODUCT=core
+ARG GRABLO_TITLE="Grablo IoT Core"
+
 ENV DEBIAN_FRONTEND=noninteractive \
     LD_LIBRARY_PATH=/usr/lib/grablo
 
@@ -48,8 +55,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
 ENV GRABLO_CONTAINER=1
 
 # OCI image metadata
-LABEL org.opencontainers.image.title="Grablo IoT Core" \
-      org.opencontainers.image.description="Grablo IoT Core controller as a Docker container — network/IoT/AI/remote-control alongside Home Assistant." \
+LABEL org.opencontainers.image.title="${GRABLO_TITLE}" \
+      org.opencontainers.image.description="${GRABLO_TITLE} controller as a Docker container — network/IoT/AI/remote-control alongside Home Assistant." \
       org.opencontainers.image.source="https://github.com/grablo/grablo-docker" \
       org.opencontainers.image.url="https://grablo.co" \
       org.opencontainers.image.vendor="Grablo" \
@@ -74,12 +81,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Download the public release .deb and extract its files (install scripts not run)
 RUN set -eux; \
     arch="$(dpkg --print-architecture)"; \
-    curl -fsSL -o /tmp/grablo.deb \
-      "https://downloads.grablo.co/releases/grablo_${GRABLO_VERSION}_${arch}.deb"; \
+    case "${GRABLO_PRODUCT}" in \
+      core) url="https://downloads.grablo.co/releases/grablo_${GRABLO_VERSION}_${arch}.deb" ;; \
+      spot) url="https://downloads.grablo.co/releases/spot/grablo-spot_${GRABLO_VERSION}_${arch}.deb" ;; \
+      *) echo "GRABLO_PRODUCT must be core or spot" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL -o /tmp/grablo.deb "$url"; \
     dpkg-deb -x /tmp/grablo.deb /tmp/grablo-root; \
     cp -a /tmp/grablo-root/usr/bin/grablo /usr/bin/; \
     cp -a /tmp/grablo-root/usr/lib/grablo /usr/lib/; \
     cp -a /tmp/grablo-root/usr/share/grablo /usr/share/; \
+    # Image-owned copy of what must follow the image, not the volume: compose mounts a volume on /usr/share/grablo
+    # (models, face DB), which hides the image's local screen (www/spot) and edition marker (product.json) after the
+    # first run. entrypoint.sh copies these back on every start.
+    mkdir -p /opt/grablo-image; \
+    cp -a /tmp/grablo-root/usr/share/grablo/www /opt/grablo-image/www 2>/dev/null || true; \
+    cp -a /tmp/grablo-root/usr/share/grablo/product.json /opt/grablo-image/product.json 2>/dev/null || true; \
     rm -rf /tmp/grablo.deb /tmp/grablo-root; \
     ldconfig /usr/lib/grablo
 
