@@ -92,10 +92,11 @@ RUN set -eux; \
     cp -a /tmp/grablo-root/usr/lib/grablo /usr/lib/; \
     cp -a /tmp/grablo-root/usr/share/grablo /usr/share/; \
     # Image-owned copy of what must follow the image, not the volume: compose mounts a volume on /usr/share/grablo
-    # (models, face DB), which hides the image's local screen (www/spot) and edition marker (product.json) after the
-    # first run. entrypoint.sh copies these back on every start.
+    # (models, face DB), which hides the image's local screen (www/spot), message catalogs (locales/<code>.json) and
+    # edition marker (product.json) after the first run. entrypoint.sh copies these back on every start.
     mkdir -p /opt/grablo-image; \
     cp -a /tmp/grablo-root/usr/share/grablo/www /opt/grablo-image/www 2>/dev/null || true; \
+    cp -a /tmp/grablo-root/usr/share/grablo/locales /opt/grablo-image/locales 2>/dev/null || true; \
     cp -a /tmp/grablo-root/usr/share/grablo/product.json /opt/grablo-image/product.json 2>/dev/null || true; \
     rm -rf /tmp/grablo.deb /tmp/grablo-root; \
     ldconfig /usr/lib/grablo
